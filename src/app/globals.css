@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-success: var(--success);
+  --color-danger: var(--danger);
+}
+
+:root {
+  --background: #eff1f5;
+  --foreground: #4c4f69;
+  --primary: #1e66f5;
+  --primary-foreground: #ffffff;
+  --muted: #e6e9ef;
+  --muted-foreground: #9ca0b0;
+  --card: #ffffff;
+  --card-foreground: #4c4f69;
+  --border: #ccd0da;
+  --accent: #df8e1d;
+  --success: #40a02b;
+  --danger: #d20f39;
+}
+
+.dark {
+  --background: #1e1e2e;
+  --foreground: #cdd6f4;
+  --primary: #89b4fa;
+  --primary-foreground: #1e1e2e;
+  --muted: #313244;
+  --muted-foreground: #a6adc8;
+  --card: #181825;
+  --card-foreground: #cdd6f4;
+  --border: #45475a;
+  --accent: #f9e2af;
+  --success: #a6e3a1;
+  --danger: #f38ba8;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* Chat bubble animation */
+@keyframes bubble-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-bubble-in {
+  animation: bubble-in 0.3s ease-out;
+}

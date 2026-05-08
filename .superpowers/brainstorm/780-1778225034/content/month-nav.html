@@ -1,0 +1,58 @@
+<h2>技能内月份切换 —— 哪种更直观？</h2>
+<p class="subtitle">进入一个技能后，需要看不同月份的规划、打卡、知识库</p>
+
+<h3>方案 A — 横向时间轴</h3>
+<div class="mockup" style="margin-bottom: 24px;">
+  <div class="mockup-header">水平滚动时间轴</div>
+  <div class="mockup-body">
+    <div style="background: #181825; padding: 16px; border-radius: 4px;">
+      <div style="font-size: 16px; font-weight: 600; color: #cdd6f4; margin-bottom: 12px;">React</div>
+      <div style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 16px;">
+        <span style="padding: 6px 16px; background: #313244; border-radius: 20px; color: #a6adc8; white-space: nowrap; font-size: 13px;">1月</span>
+        <span style="padding: 6px 16px; background: #313244; border-radius: 20px; color: #a6adc8; white-space: nowrap; font-size: 13px;">2月</span>
+        <span style="padding: 6px 16px; background: #313244; border-radius: 20px; color: #a6adc8; white-space: nowrap; font-size: 13px;">3月</span>
+        <span style="padding: 6px 16px; background: #313244; border-radius: 20px; color: #a6adc8; white-space: nowrap; font-size: 13px;">4月</span>
+        <span style="padding: 6px 16px; background: #89b4fa; border-radius: 20px; color: #1e1e2e; white-space: nowrap; font-size: 13px; font-weight: 600;">5月</span>
+        <span style="padding: 6px 16px; background: #313244; border-radius: 20px; color: #a6adc8; white-space: nowrap; font-size: 13px;">6月</span>
+        <span style="padding: 6px 16px; background: #313244; border-radius: 20px; color: #a6adc8; white-space: nowrap; font-size: 13px;">7月</span>
+        <span style="padding: 6px 16px; background: #313244; border-radius: 20px; color: #a6adc8; white-space: nowrap; font-size: 13px;">...</span>
+      </div>
+      <div style="background: #1e1e2e; padding: 40px; border-radius: 8px; text-align: center; color: #a6adc8;">5月内容区</div>
+    </div>
+  </div>
+</div>
+
+<h3>方案 B — 下拉 + 左右箭头</h3>
+<div class="mockup" style="margin-bottom: 24px;">
+  <div class="mockup-header">简洁月份选择器</div>
+  <div class="mockup-body">
+    <div style="background: #181825; padding: 16px; border-radius: 4px;">
+      <div style="font-size: 16px; font-weight: 600; color: #cdd6f4; margin-bottom: 12px;">React</div>
+      <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 16px;">
+        <span style="color: #a6adc8; cursor: pointer; font-size: 18px;">&lt;</span>
+        <span style="padding: 4px 8px; background: #313244; border-radius: 6px; color: #cdd6f4; font-weight: 600; font-size: 14px;">2026年5月 &nbsp;&#9660;</span>
+        <span style="color: #a6adc8; cursor: pointer; font-size: 18px;">&gt;</span>
+      </div>
+      <div style="background: #1e1e2e; padding: 40px; border-radius: 8px; text-align: center; color: #a6adc8;">5月内容区</div>
+    </div>
+  </div>
+</div>
+
+<h3>方案 C — 日历面板</h3>
+<div class="mockup">
+  <div class="mockup-header">小型月历 + 点击日期</div>
+  <div class="mockup-body">
+    <div style="background: #181825; padding: 16px; border-radius: 4px; display: flex; gap: 16px;">
+      <div style="flex-shrink: 0; width: 160px;">
+        <div style="text-align: center; font-weight: 600; color: #cdd6f4; font-size: 12px; margin-bottom: 6px;">2026年5月</div>
+        <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; font-size: 10px; color: #a6adc8; text-align: center;">
+          <span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span>
+          <span style="color: #585b70;">28</span><span style="color: #585b70;">29</span><span style="color: #585b70;">30</span><span>1</span><span>2</span><span>3</span><span>4</span>
+          <span>5</span><span>6</span><span>7</span><span style="background:#89b4fa; color:#1e1e2e; border-radius:50%;">8</span><span>9</span><span>10</span><span>11</span>
+        </div>
+      </div>
+      <div style="flex: 1; background: #1e1e2e; padding: 20px; border-radius: 8px; text-align: center; color: #a6adc8;">5月8日打卡详情</div>
+    </div>
+    <div style="margin-top: 8px; font-size: 11px; color: #a6adc8; text-align: center;">适合以日为粒度的回顾，但对月度规划查看偏重</div>
+  </div>
+</div>

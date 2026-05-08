@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p /tmp/plan-temp)",
+      "Bash(mv SPEC.md /tmp/plan-temp/)",
+      "Bash(mv .superpowers /tmp/plan-temp/)",
+      "Bash(npx create-next-app@latest *)",
+      "Bash(npm install *)",
+      "Bash(mv /tmp/plan-temp/SPEC.md .)",
+      "Bash(mv /tmp/plan-temp/.superpowers .)",
+      "Bash(rm -rf /tmp/plan-temp)",
+      "Bash(npm run *)",
+      "Bash(git init *)",
+      "Bash(git add *)"
+    ]
+  }
+}

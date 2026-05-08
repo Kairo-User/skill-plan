@@ -1,0 +1,77 @@
+<h2>计划导入确认 —— 粘贴AI规划后，怎么确认？</h2>
+<p class="subtitle">你贴入Markdown规划文本后，系统需要确认解析结果</p>
+
+<h3>方案 A — 分步逐层确认</h3>
+<div class="mockup" style="margin-bottom: 24px;">
+  <div class="mockup-header">第一步：确认技能名称</div>
+  <div class="mockup-body">
+    <div style="background: #181825; padding: 20px; border-radius: 4px;">
+      <div style="color: #a6adc8; font-size: 13px; margin-bottom: 12px;">识别到以下技能计划：</div>
+      <div style="background: #1e1e2e; padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span style="color: #89b4fa; font-weight: 600;">React 前端开发</span>
+          <span style="font-size: 11px; color: #a6adc8;">3个月度目标 · 12个子任务</span>
+        </div>
+      </div>
+      <div style="text-align: center; color: #a6adc8; font-size: 12px;">确认无误，进入下一步 →</div>
+    </div>
+  </div>
+</div>
+
+<h3>方案 B — 全量预览+高亮编辑</h3>
+<div class="mockup" style="margin-bottom: 24px;">
+  <div class="mockup-header">一次性展示全部解析结果，点击可修改</div>
+  <div class="mockup-body">
+    <div style="background: #181825; padding: 20px; border-radius: 4px;">
+      <div style="background: #1e1e2e; padding: 16px; border-radius: 8px; font-size: 13px;">
+        <div style="color: #89b4fa; font-weight: 600; margin-bottom: 8px; padding: 4px 8px; border-radius: 4px; border: 1px dashed #89b4fa;">📌 React 前端开发</div>
+        <div style="margin-left: 16px; margin-bottom: 6px;">
+          <span style="color: #a6e3a1;">📅 3月目标</span>
+          <div style="margin-left: 16px; color: #cdd6f4; font-size: 12px; margin-top: 2px;">
+            <div style="padding: 2px 4px; border-radius: 3px; border: 1px dashed transparent;">☐ 环境搭建与JSX语法</div>
+            <div style="padding: 2px 4px; border-radius: 3px; border: 1px dashed transparent;">☐ 组件与Props</div>
+            <div style="padding: 2px 4px; border-radius: 3px; border: 1px dashed transparent;">☐ 状态管理入门</div>
+          </div>
+        </div>
+        <div style="margin-left: 16px; margin-bottom: 6px;">
+          <span style="color: #a6e3a1;">📅 4月目标</span>
+          <div style="margin-left: 16px; color: #cdd6f4; font-size: 12px; margin-top: 2px;">
+            <div style="padding: 2px 4px; border-radius: 3px; border: 1px dashed transparent;">☐ React Router</div>
+            <div style="padding: 2px 4px; border-radius: 3px;">☐ Hooks深入</div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top: 12px; text-align: center; font-size: 11px; color: #a6adc8;">虚线框 = 可点击编辑 · 确认后一键导入</div>
+    </div>
+  </div>
+</div>
+
+<h3>方案 C — 源码对照</h3>
+<div class="mockup">
+  <div class="mockup-header">左右分屏：原始Markdown vs 解析结果</div>
+  <div class="mockup-body">
+    <div style="display: flex; gap: 12px;">
+      <div style="flex: 1; background: #1e1e2e; padding: 12px; border-radius: 6px; font-size: 11px; font-family: monospace; color: #a6adc8;">
+        # React 前端开发<br>
+        ## 3月<br>
+        - 环境搭建<br>
+        - JSX语法<br>
+        - 组件与Props<br>
+        ## 4月<br>
+        - React Router<br>
+        - Hooks深入
+      </div>
+      <div style="flex: 1; background: #181825; padding: 12px; border-radius: 6px; font-size: 11px; color: #cdd6f4;">
+        <div style="color: #89b4fa; font-weight: 600;">React 前端开发</div>
+        <div style="margin-top: 8px; color: #a6e3a1;">3月</div>
+        <div>☐ 环境搭建</div>
+        <div>☐ JSX语法</div>
+        <div>☐ 组件与Props</div>
+        <div style="margin-top: 8px; color: #a6e3a1;">4月</div>
+        <div>☐ React Router</div>
+        <div>☐ Hooks深入</div>
+      </div>
+    </div>
+    <div style="margin-top: 12px; text-align: center; font-size: 11px; color: #a6adc8;">左右对照检查，问题处标红</div>
+  </div>
+</div>
