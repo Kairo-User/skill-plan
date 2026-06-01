@@ -2,9 +2,12 @@
 
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
+function cleanEnv(value: string | undefined): string {
+  return (value ?? "").replace(/﻿/g, "");
+}
+
 export function createClient() {
-  return createSupabaseClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const url = cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_URL);
+  const key = cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+  return createSupabaseClient(url, key);
 }
