@@ -42,10 +42,20 @@ export interface CheckIn {
 export interface KnowledgeItem {
   id: string;
   skill_id: string;
+  title: string | null;
   content: string;
   source_checkin_id: string | null;
   month: string;
   created_at: string;
+}
+
+export interface DailyTask {
+  id: string;
+  skill_id: string;
+  text: string;
+  sort_order: number;
+  created_at: string;
+  done_today?: boolean;
 }
 
 export interface PlanSnapshot {
@@ -75,6 +85,7 @@ export interface CheckInWithSubtask extends CheckIn {
 export interface SkillCardData {
   skill: Skill;
   todayCheckIn: CheckIn | null;
+  subtasks: Subtask[];
 }
 
 // ============================================
@@ -84,6 +95,7 @@ export interface SkillCardData {
 export interface ParsedPlan {
   skillName: string;
   months: ParsedMonth[];
+  unassignedSubtasks?: string[];
 }
 
 export interface ParsedMonth {

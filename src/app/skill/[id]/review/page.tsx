@@ -69,7 +69,7 @@ export default function ReviewPage() {
         </span>
       </div>
 
-      <FlashCard content={current.content} />
+      <FlashCard title={current.title || current.content.slice(0, 30)} content={current.content} />
 
       <div className="mt-6">
         <ReviewControls

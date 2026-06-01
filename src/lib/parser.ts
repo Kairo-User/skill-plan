@@ -22,18 +22,18 @@ export function parseMarkdownPlan(raw: string): ParsedPlan {
   for (const line of lines) {
     if (!line) continue;
 
-    // H1: skill name
-    if (line.startsWith("# ") && !line.startsWith("## ")) {
-      skillName = line.replace(/^#\s+/, "").trim();
+    // H1: skill name — # Title or #Title
+    if (/^#(?!#)/.test(line)) {
+      skillName = line.replace(/^#\s*/, "").trim();
       continue;
     }
 
-    // H2: month heading
-    if (line.startsWith("## ")) {
+    // H2: month heading — ## 3月 or ##3月
+    if (/^##(?!#)/.test(line)) {
       if (currentMonth) {
         months.push(currentMonth);
       }
-      const label = line.replace(/^##\s+/, "").trim();
+      const label = line.replace(/^##\s*/, "").trim();
       try {
         const monthDate = getMonthDate(label);
         currentMonth = {
@@ -48,8 +48,8 @@ export function parseMarkdownPlan(raw: string): ParsedPlan {
       continue;
     }
 
-    // List item: subtask
-    const listMatch = line.match(/^[-*]\s+(.+)/);
+    // List item: subtask — "- text" or "-text" or "* text" or "*text"
+    const listMatch = line.match(/^[-*]\s*(.+)/);
     if (listMatch && currentMonth) {
       currentMonth.subtasks.push(listMatch[1].trim());
     }

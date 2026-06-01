@@ -79,6 +79,11 @@ export function MigrationDialog({
 
       if (toInsert.length > 0) {
         await supabase.from("subtasks").insert(toInsert);
+        // Mark originals as done
+        const migratedIds = incompleteSubtasks.filter((st) => selected.has(st.id)).map((s) => s.id);
+        if (migratedIds.length > 0) {
+          await supabase.from("subtasks").update({ is_done: true }).in("id", migratedIds);
+        }
       }
     }
 

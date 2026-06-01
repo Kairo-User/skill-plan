@@ -4,11 +4,18 @@ import type { Subtask } from "@/types/database";
 interface SubtaskItemProps {
   subtask: Subtask;
   editable: boolean;
+  minutes?: number;
   onToggle: (id: string, isDone: boolean) => void;
   onDelete: (id: string) => void;
 }
 
-export function SubtaskItem({ subtask, editable, onToggle, onDelete }: SubtaskItemProps) {
+export function SubtaskItem({ subtask, editable, minutes, onToggle, onDelete }: SubtaskItemProps) {
+  const h = minutes ? Math.floor(minutes / 60) : 0;
+  const m = minutes ? minutes % 60 : 0;
+  const timeStr = minutes && minutes > 0
+    ? (h > 0 ? `${h}h` : "") + (m > 0 ? `${m}m` : "")
+    : "";
+
   return (
     <div className="flex items-center gap-3 py-2 group">
       <button
@@ -34,10 +41,14 @@ export function SubtaskItem({ subtask, editable, onToggle, onDelete }: SubtaskIt
         {subtask.text}
       </span>
 
+      {timeStr && (
+        <span className="text-xs text-[var(--muted-foreground)]">{timeStr}</span>
+      )}
+
       {editable && (
         <button
           onClick={() => onDelete(subtask.id)}
-          className="opacity-0 group-hover:opacity-100 text-[var(--muted-foreground)] hover:text-[var(--danger)] transition-all text-xs"
+          className="text-[var(--muted-foreground)] hover:text-[var(--danger)] transition-all text-xs"
         >
           ✕
         </button>

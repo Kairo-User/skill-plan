@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { ChatBubble } from "@/components/ui/ChatBubble";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import { useCheckInMachine } from "@/hooks/useCheckInMachine";
 import { createClient } from "@/lib/supabase/client";
-import { parseDuration, formatDate, today } from "@/lib/utils";
+import { parseDuration, today } from "@/lib/utils";
 import type { Subtask, CheckIn } from "@/types/database";
 
 interface CheckInDialogProps {
@@ -20,228 +19,148 @@ interface CheckInDialogProps {
   onSaved: () => void;
 }
 
+type Step = "duration" | "subtask" | "notes" | "done";
+
 export function CheckInDialog({
-  skillId,
-  skillName,
-  existingCheckIn,
-  subtasks,
-  open,
-  onClose,
-  onSaved,
+  skillId, skillName, existingCheckIn, subtasks, open, onClose, onSaved,
 }: CheckInDialogProps) {
-  const { state, setDate, setDuration, setSubtask, setNotes, setInsight, setKnowledge, skip, reset } =
-    useCheckInMachine();
   const supabase = createClient();
-  const durationRef = useRef<HTMLInputElement>(null);
-  const notesRef = useRef<HTMLTextAreaElement>(null);
-  const insightRef = useRef<HTMLTextAreaElement>(null);
-  const knowledgeRef = useRef<HTMLTextAreaElement>(null);
+  const [step, setStep] = useState<Step>("duration");
+  const [durationText, setDurationText] = useState("");
+  const [durationVal, setDurationVal] = useState(0);
+  const [timeError, setTimeError] = useState("");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [noteText, setNoteText] = useState("");
+  const ref1 = useRef<HTMLInputElement>(null);
+  const ref2 = useRef<HTMLTextAreaElement>(null);
+
+  const hasNoSubtasks = subtasks.length === 0;
 
   useEffect(() => {
-    if (open) {
-      reset();
-      if (existingCheckIn) {
-        setDate(existingCheckIn.date);
-        setDuration(existingCheckIn.duration_minutes);
-        if (existingCheckIn.subtask_id) setSubtask(existingCheckIn.subtask_id);
-        if (existingCheckIn.notes) setNotes(existingCheckIn.notes);
-        if (existingCheckIn.learning_insight) setInsight(existingCheckIn.learning_insight);
-      }
+    if (!open) return;
+    setStep("duration");
+    setTimeError("");
+    if (existingCheckIn) {
+      const m = existingCheckIn.duration_minutes;
+      const h = Math.floor(m / 60);
+      const min = m % 60;
+      if (h > 0 && min > 0) setDurationText(`${h}小时${min}分`);
+      else if (h > 0) setDurationText(`${h}小时`);
+      else if (min > 0) setDurationText(`${min}分`);
+      else setDurationText(String(m));
+      setDurationVal(m);
+      setSelectedIds(existingCheckIn.subtask_id ? new Set([existingCheckIn.subtask_id]) : new Set());
+      setNoteText(existingCheckIn.notes || "");
+    } else {
+      setDurationText("");
+      setDurationVal(0);
+      setSelectedIds(new Set());
+      setNoteText("");
     }
   }, [open]);
 
   useEffect(() => {
-    if (state.step === "duration" && durationRef.current) {
-      durationRef.current.focus();
-    }
-    if (state.step === "notes" && notesRef.current) {
-      notesRef.current.focus();
-    }
-    if (state.step === "insight" && insightRef.current) {
-      insightRef.current.focus();
-    }
-    if (state.step === "knowledge" && knowledgeRef.current) {
-      knowledgeRef.current.focus();
-    }
-  }, [state.step]);
+    if (step === "duration" && ref1.current) ref1.current.focus();
+    if (step === "notes" && ref2.current) ref2.current.focus();
+  }, [step]);
+
+  function goDuration() {
+    const val = parseDuration(durationText);
+    if (val <= 0) { setTimeError("格式不对哦～试试 2小时30分 或 2.5"); return; }
+    if (val > 1440) { setTimeError("一天最多24小时～"); return; }
+    setDurationVal(val);
+    setTimeError("");
+    setStep(hasNoSubtasks ? "notes" : "subtask");
+  }
+
+  function goSubtask() {
+    setStep("notes");
+  }
 
   async function handleComplete() {
-    if (state.durationMinutes === null) return;
+    if (durationVal <= 0) return;
+    const names = subtasks.filter((s) => selectedIds.has(s.id)).map((s) => s.text);
+    const notes = [
+      names.length > 1 ? `子目标：${names.join("、")}` : "",
+      noteText,
+    ].filter(Boolean).join("\n");
 
-    const isBackfill = state.date !== today();
-
-    const { error } = await supabase.from("check_ins").upsert({
+    const { error } = await supabase.from("check_ins").insert({
       skill_id: skillId,
-      date: state.date,
-      duration_minutes: state.durationMinutes,
-      subtask_id: state.subtaskId,
-      notes: state.notes || null,
-      learning_insight: state.learningInsight || null,
-      is_backfill: isBackfill,
+      date: today(),
+      duration_minutes: durationVal,
+      subtask_id: [...selectedIds][0] || null,
+      notes: notes || null,
+      learning_insight: noteText || null,
+      is_backfill: false,
     });
-
-    if (error) {
-      console.error("Check-in failed:", error);
-      return;
-    }
-
-    // Insert knowledge item if provided
-    if (state.knowledgeContent.trim()) {
-      await supabase.from("knowledge_items").insert({
-        skill_id: skillId,
-        content: state.knowledgeContent.trim(),
-        month: state.date.substring(0, 7) + "-01",
-      });
-    }
-
+    if (error) { console.error("Check-in failed:", error); return; }
     onSaved();
     onClose();
   }
 
+  function toggleSub(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
   return (
     <Modal open={open} onClose={onClose} title={skillName}>
-      <div className="flex flex-col gap-4 min-h-[300px]">
-        {/* Step: date */}
-        {state.step === "date" && (
-          <div className="flex flex-col gap-3">
-            <ChatBubble>今天是哪一天鸭？</ChatBubble>
-            <div className="flex gap-2 items-center">
-              <Input
-                type="date"
-                value={state.date}
-                onChange={(e) => setDate(e.target.value)}
-                className="flex-1"
-              />
-              <Button onClick={() => setDate(state.date)} size="sm">
-                确定
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Step: duration */}
-        {state.step === "duration" && (
-          <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-4 min-h-[260px]">
+        {step === "duration" && (
+          <div className="flex flex-col gap-4 items-center">
             <ChatBubble>今天学了多久呀？</ChatBubble>
-            <div className="flex gap-2 items-center">
-              <Input
-                ref={durationRef}
-                placeholder="比如：2小时30分"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    const val = parseDuration((e.target as HTMLInputElement).value);
-                    if (val > 0) setDuration(val);
-                  }
-                }}
-              />
-              <Button
-                size="sm"
-                onClick={() => {
-                  const val = parseDuration(durationRef.current?.value ?? "");
-                  if (val > 0) setDuration(val);
-                }}
-              >
-                确定
-              </Button>
+            <div className="flex flex-col gap-2 w-full max-w-[240px]">
+              <Input ref={ref1} placeholder="如 2小时30分 或 2.5（小时）"
+                value={durationText}
+                onChange={(e) => { setDurationText(e.target.value); setTimeError(""); }}
+                onKeyDown={(e) => { if (e.key === "Enter") goDuration(); }} />
+              {timeError && <p className="text-xs text-[var(--danger)] text-center">{timeError}</p>}
             </div>
+            <Button size="lg" onClick={goDuration}>确定</Button>
           </div>
         )}
 
-        {/* Step: subtask */}
-        {state.step === "subtask" && (
+        {step === "subtask" && !hasNoSubtasks && (
           <div className="flex flex-col gap-3">
-            <ChatBubble>学的是哪个子目标呀？不选也行～</ChatBubble>
+            <ChatBubble>今天学了哪些子目标？可多选～</ChatBubble>
             <div className="flex flex-wrap gap-2">
               {subtasks.map((st) => (
-                <button
-                  key={st.id}
-                  onClick={() => setSubtask(st.id)}
-                  className="px-3 py-1.5 rounded-full text-xs border border-[var(--border)] text-[var(--foreground)] hover:border-[var(--primary)] transition-colors"
-                >
-                  {st.text}
-                </button>
+                <button key={st.id} onClick={() => toggleSub(st.id)}
+                  className={`px-3 py-1.5 rounded-full text-xs border transition-colors ${
+                    selectedIds.has(st.id)
+                      ? "border-[var(--primary)] bg-[var(--primary)] text-[var(--primary-foreground)]"
+                      : "border-[var(--border)] text-[var(--foreground)] hover:border-[var(--primary)]"
+                  }`}>{st.text}</button>
               ))}
             </div>
-            <Button variant="ghost" size="sm" onClick={skip}>
-              跳过
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setStep("notes")}>跳过</Button>
+              <Button size="sm" onClick={goSubtask}>确定</Button>
+            </div>
           </div>
         )}
 
-        {/* Step: notes */}
-        {state.step === "notes" && (
+        {step === "notes" && (
           <div className="flex flex-col gap-3">
-            <ChatBubble>有什么想备注的吗～</ChatBubble>
-            <Textarea
-              ref={notesRef}
-              placeholder="链接、资源什么的..."
-              rows={2}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  setNotes((e.target as HTMLTextAreaElement).value);
-                }
-              }}
-            />
-            <Button variant="ghost" size="sm" onClick={skip}>
-              跳过
-            </Button>
+            <ChatBubble>有什么备注或学习心得吗～</ChatBubble>
+            <Textarea ref={ref2} placeholder="学到了什么，有什么感悟..." rows={4}
+              value={noteText} onChange={(e) => setNoteText(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); setStep("done"); } }} />
+            <div className="flex gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setStep("done")}>跳过</Button>
+              <Button size="sm" onClick={() => setStep("done")}>确定</Button>
+            </div>
           </div>
         )}
 
-        {/* Step: insight */}
-        {state.step === "insight" && (
-          <div className="flex flex-col gap-3">
-            <ChatBubble>今天有什么学习心得呀？</ChatBubble>
-            <Textarea
-              ref={insightRef}
-              placeholder="学到了什么，有什么感悟..."
-              rows={3}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  setInsight((e.target as HTMLTextAreaElement).value);
-                }
-              }}
-            />
-            <Button variant="ghost" size="sm" onClick={skip}>
-              跳过
-            </Button>
-          </div>
-        )}
-
-        {/* Step: knowledge */}
-        {state.step === "knowledge" && (
-          <div className="flex flex-col gap-3">
-            <ChatBubble>有没有需要反复记忆的知识点？</ChatBubble>
-            <Textarea
-              ref={knowledgeRef}
-              placeholder="关键知识，以后要复习的..."
-              rows={3}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  setKnowledge((e.target as HTMLTextAreaElement).value);
-                }
-              }}
-            />
-            <Button variant="ghost" size="sm" onClick={skip}>
-              跳过
-            </Button>
-          </div>
-        )}
-
-        {/* Step: complete — submit */}
-        {state.step === "complete" && (
+        {step === "done" && (
           <div className="flex flex-col gap-4 items-center justify-center flex-1">
-            <ChatBubble>
-              {state.date !== today()
-                ? `补卡：${state.date}，${state.durationMinutes}分钟的学习～提交前要再看看吗？`
-                : `今天学了${state.durationMinutes}分钟，棒棒的！提交吗？`}
-            </ChatBubble>
-            <Button onClick={handleComplete} size="lg">
-              完成打卡 ✨
-            </Button>
+            <ChatBubble>今天学了{durationVal}分钟，棒棒的！提交吗？</ChatBubble>
+            <Button onClick={handleComplete} size="lg">完成打卡 ✨</Button>
           </div>
         )}
       </div>

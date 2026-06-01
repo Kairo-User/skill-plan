@@ -7,6 +7,7 @@ import type { Subtask } from "@/types/database";
 interface SubtaskListProps {
   subtasks: Subtask[];
   editable: boolean;
+  minutesMap?: Map<string, number>;
   onToggle: (subtaskId: string, isDone: boolean) => void;
   onAdd: (text: string) => void;
   onDelete: (subtaskId: string) => void;
@@ -15,6 +16,7 @@ interface SubtaskListProps {
 export function SubtaskList({
   subtasks,
   editable,
+  minutesMap,
   onToggle,
   onAdd,
   onDelete,
@@ -30,6 +32,7 @@ export function SubtaskList({
             key={st.id}
             subtask={st}
             editable={editable}
+            minutes={minutesMap?.get(st.id)}
             onToggle={onToggle}
             onDelete={onDelete}
           />

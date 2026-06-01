@@ -6,16 +6,19 @@ import { PlanEditor } from "./PlanEditor";
 import { MigrationDialog } from "./MigrationDialog";
 import { Button } from "@/components/ui/Button";
 import { createClient } from "@/lib/supabase/client";
+import { useSkillTab } from "@/lib/skill-context";
 import type { MonthlyGoal, Subtask } from "@/types/database";
 
 interface PlanTabProps {
   skillId: string;
   month: string;
   monthlyGoal: (MonthlyGoal & { subtasks: Subtask[] }) | null;
+  unassignedSubtasks: Subtask[];
   hasIncompleteFromPast: boolean;
   pastIncompleteCount: number;
   pastIncompleteSubtasks: Subtask[];
   availableMonths: string[];
+  subtaskMinutes: Map<string, number>;
   onSaved: () => void;
 }
 
@@ -23,12 +26,15 @@ export function PlanTab({
   skillId,
   month,
   monthlyGoal,
+  unassignedSubtasks,
   hasIncompleteFromPast,
   pastIncompleteCount,
   pastIncompleteSubtasks,
   availableMonths,
+  subtaskMinutes,
   onSaved,
 }: PlanTabProps) {
+  const { editMode, setEditMode } = useSkillTab();
   const [editorOpen, setEditorOpen] = useState(false);
   const [migrationOpen, setMigrationOpen] = useState(false);
   const supabase = createClient();
@@ -40,12 +46,14 @@ export function PlanTab({
 
   async function addSubtask(text: string) {
     if (!monthlyGoal) return;
+    if (monthlyGoal.subtasks.some((s) => s.text === text)) return;
     await supabase.from("subtasks").insert({
       monthly_goal_id: monthlyGoal.id,
       text,
       sort_order: monthlyGoal.subtasks.length,
     });
     onSaved();
+    setEditMode(false);
   }
 
   async function deleteSubtask(subtaskId: string) {
@@ -57,16 +65,19 @@ export function PlanTab({
     <div>
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold text-[var(--foreground)]">月度子目标</h3>
-        <Button size="sm" variant="secondary" onClick={() => setEditorOpen(true)}>
-          {monthlyGoal ? "编辑" : "添加规划"}
-        </Button>
+        {!editMode && (
+          <Button size="sm" variant="secondary" onClick={() => { setEditMode(true); setEditorOpen(true); }}>
+            {monthlyGoal ? "编辑" : "添加规划"}
+          </Button>
+        )}
       </div>
 
       {monthlyGoal ? (
         <>
           <SubtaskList
             subtasks={monthlyGoal.subtasks}
-            editable={false}
+            editable={editMode}
+            minutesMap={subtaskMinutes}
             onToggle={toggleSubtask}
             onAdd={addSubtask}
             onDelete={deleteSubtask}
@@ -83,6 +94,42 @@ export function PlanTab({
         <p className="text-sm text-[var(--muted-foreground)] text-center py-8">
           这个月还没有规划～添加一个吧！
         </p>
+      )}
+
+      {/* Unassigned subtasks */}
+      {unassignedSubtasks.length > 0 && (
+        <div className="mt-6">
+          <h4 className="text-sm font-medium text-[var(--muted-foreground)] mb-2">
+            通用子目标（未分配月份）
+          </h4>
+          <SubtaskList
+            subtasks={unassignedSubtasks}
+            editable={editMode}
+            minutesMap={subtaskMinutes}
+            onToggle={toggleSubtask}
+            onAdd={(text) => {
+              // Add to first unassigned goal or create one
+              (async () => {
+                const { data: goals } = await supabase
+                  .from("monthly_goals")
+                  .select("id")
+                  .eq("skill_id", skillId)
+                  .is("month", null)
+                  .limit(1);
+                const goalId = goals?.[0]?.id;
+                if (goalId) {
+                  await supabase.from("subtasks").insert({
+                    monthly_goal_id: goalId,
+                    text,
+                    sort_order: unassignedSubtasks.length,
+                  });
+                  onSaved();
+                }
+              })();
+            }}
+            onDelete={deleteSubtask}
+          />
+        </div>
       )}
 
       {hasIncompleteFromPast && (
@@ -103,6 +150,7 @@ export function PlanTab({
           existingGoal={monthlyGoal}
           onSaved={() => {
             setEditorOpen(false);
+            setEditMode(false);
             onSaved();
           }}
           onCancel={() => setEditorOpen(false)}

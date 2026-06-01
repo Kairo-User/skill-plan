@@ -23,10 +23,6 @@ export function StepPasteMarkdown({ onNext }: StepPasteMarkdownProps) {
 
     try {
       const plan = parseMarkdownPlan(raw);
-      if (!plan.skillName) {
-        setError("没找到技能名呢，用 # 开头的标题来命名吧～");
-        return;
-      }
       if (plan.months.length === 0) {
         setError("没找到月度规划，用 ## 开头写月份试试？");
         return;
@@ -40,17 +36,9 @@ export function StepPasteMarkdown({ onNext }: StepPasteMarkdownProps) {
   return (
     <div className="flex flex-col gap-4">
       <ChatBubble>
-        把 AI 帮你生成的规划粘贴进来吧～
-        <br />
-        格式示例：
-        <br />
-        # 技能名
-        <br />
-        ## 3月
-        <br />
-        - 子任务1
-        <br />
-        - 子任务2
+        把 AI 帮你生成的规划粘贴进来吧～<br />
+        格式：用 # 开头写技能名，## 开头写月份，- 开头写子任务<br />
+        # 和 ## 后面的空格可有可无
       </ChatBubble>
 
       <Textarea

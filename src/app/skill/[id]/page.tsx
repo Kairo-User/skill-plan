@@ -1,16 +1,17 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import { CheckInTab } from "@/components/skill/CheckInTab";
+import { DailyPlanTab } from "@/components/skill/DailyPlanTab";
 import { PlanTab } from "@/components/skill/PlanTab";
 import { KnowledgeTab } from "@/components/skill/KnowledgeTab";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { createClient } from "@/lib/supabase/client";
 import { getMonthKey } from "@/lib/utils";
+import { useSkillTab } from "@/lib/skill-context";
 import type {
   Skill,
-  CheckIn,
   CheckInWithSubtask,
   MonthlyGoal,
   Subtask,
@@ -19,22 +20,21 @@ import type {
 
 export default function SkillPage() {
   const params = useParams();
-  const searchParams = useSearchParams();
   const skillId = params.id as string;
-  const currentMonth = searchParams.get("month") ?? new Date().toISOString().substring(0, 7) + "-01";
-  const activeTab = searchParams.get("tab") ?? "checkin";
+  const { activeTab, currentMonth } = useSkillTab();
 
   const [skillName, setSkillName] = useState("");
   const [checkIns, setCheckIns] = useState<CheckInWithSubtask[]>([]);
   const [monthlyGoal, setMonthlyGoal] = useState<
     (MonthlyGoal & { subtasks: Subtask[] }) | null
   >(null);
+  const [unassignedSubtasks, setUnassignedSubtasks] = useState<Subtask[]>([]);
+  const [allSubtasks, setAllSubtasks] = useState<Subtask[]>([]);
   const [knowledgeItems, setKnowledgeItems] = useState<KnowledgeItem[]>([]);
+  const [subtaskMinutes, setSubtaskMinutes] = useState<Map<string, number>>(new Map());
   const [hasIncompleteFromPast, setHasIncompleteFromPast] = useState(false);
   const [pastIncompleteCount, setPastIncompleteCount] = useState(0);
-  const [pastIncompleteSubtasks, setPastIncompleteSubtasks] = useState<
-    Subtask[]
-  >([]);
+  const [pastIncompleteSubtasks, setPastIncompleteSubtasks] = useState<Subtask[]>([]);
   const [availableMonths, setAvailableMonths] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
@@ -43,7 +43,6 @@ export default function SkillPage() {
     setLoading(true);
     const monthKey = getMonthKey(currentMonth);
 
-    // Skill name
     const { data: skill } = await supabase
       .from("skills")
       .select("*")
@@ -51,7 +50,6 @@ export default function SkillPage() {
       .single();
     if (skill) {
       setSkillName(skill.name);
-      // Generate available months
       const start = new Date((skill as Skill).created_at);
       const now = new Date();
       const months: string[] = [];
@@ -65,11 +63,10 @@ export default function SkillPage() {
       setAvailableMonths(months);
     }
 
-    // Check-ins for this month
     const monthStart = monthKey;
     const d = new Date(monthStart + "T00:00:00");
     d.setMonth(d.getMonth() + 1);
-    // All check-ins for this skill (we filter client-side for simplicity)
+
     const { data: checkInRows } = await supabase
       .from("check_ins")
       .select("*, subtask:subtasks(*)")
@@ -80,7 +77,6 @@ export default function SkillPage() {
 
     setCheckIns((checkInRows as CheckInWithSubtask[]) ?? []);
 
-    // Monthly goal + subtasks
     const { data: goalRows } = await supabase
       .from("monthly_goals")
       .select("*, subtasks(*)")
@@ -92,7 +88,25 @@ export default function SkillPage() {
       goalRows?.[0] as (MonthlyGoal & { subtasks: Subtask[] }) | null ?? null
     );
 
-    // Check incomplete from previous month
+    // Fetch unassigned subtasks (month = null)
+    const { data: unassignedGoals } = await supabase
+      .from("monthly_goals")
+      .select("*, subtasks(*)")
+      .eq("skill_id", skillId)
+      .is("month", null);
+    const unassigned: Subtask[] = [];
+    if (unassignedGoals) {
+      for (const g of unassignedGoals) {
+        const subs = (g as unknown as { subtasks: Subtask[] }).subtasks ?? [];
+        unassigned.push(...subs);
+      }
+    }
+    setUnassignedSubtasks(unassigned);
+    setAllSubtasks([
+      ...(goalRows?.[0] as unknown as { subtasks: Subtask[] } | undefined)?.subtasks ?? [],
+      ...unassigned,
+    ]);
+
     const prevMonth = new Date(monthStart + "T00:00:00");
     prevMonth.setMonth(prevMonth.getMonth() - 1);
     const prevMonthStr = prevMonth.toISOString().substring(0, 7) + "-01";
@@ -119,7 +133,6 @@ export default function SkillPage() {
       setHasIncompleteFromPast(false);
     }
 
-    // Knowledge items
     const { data: knowledgeRows } = await supabase
       .from("knowledge_items")
       .select("*")
@@ -128,6 +141,20 @@ export default function SkillPage() {
       .order("created_at", { ascending: false });
 
     setKnowledgeItems(knowledgeRows ?? []);
+
+    // Subtask learning time
+    const { data: allCheckIns } = await supabase
+      .from("check_ins")
+      .select("subtask_id, duration_minutes")
+      .eq("skill_id", skillId)
+      .not("subtask_id", "is", null);
+    const timeMap = new Map<string, number>();
+    for (const ci of (allCheckIns ?? [])) {
+      if (ci.subtask_id) {
+        timeMap.set(ci.subtask_id, (timeMap.get(ci.subtask_id) ?? 0) + ci.duration_minutes);
+      }
+    }
+    setSubtaskMinutes(timeMap);
 
     setLoading(false);
   }, [skillId, currentMonth, supabase]);
@@ -140,13 +167,16 @@ export default function SkillPage() {
 
   return (
     <div>
+      {activeTab === "daily" && (
+        <DailyPlanTab skillId={skillId} />
+      )}
       {activeTab === "checkin" && (
         <CheckInTab
           skillId={skillId}
           skillName={skillName}
           month={currentMonth}
           checkIns={checkIns}
-          subtasks={monthlyGoal?.subtasks ?? []}
+          subtasks={allSubtasks}
           onSaved={fetchAll}
         />
       )}
@@ -155,10 +185,12 @@ export default function SkillPage() {
           skillId={skillId}
           month={currentMonth}
           monthlyGoal={monthlyGoal}
+          unassignedSubtasks={unassignedSubtasks}
           hasIncompleteFromPast={hasIncompleteFromPast}
           pastIncompleteCount={pastIncompleteCount}
           pastIncompleteSubtasks={pastIncompleteSubtasks}
           availableMonths={availableMonths}
+          subtaskMinutes={subtaskMinutes}
           onSaved={fetchAll}
         />
       )}

@@ -4,74 +4,70 @@ import { useState } from "react";
 import { Header } from "@/components/layout/Header";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { WizardProgress } from "@/components/import/WizardProgress";
-import { StepPasteMarkdown } from "@/components/import/StepPasteMarkdown";
-import { StepConfirmSkill } from "@/components/import/StepConfirmSkill";
-import { StepConfirmMonths } from "@/components/import/StepConfirmMonths";
-import { StepConfirmSubtasks } from "@/components/import/StepConfirmSubtasks";
+import { StepInputName } from "@/components/import/StepInputName";
+import { StepInputSubtasks, type SubtaskInput, type SubtaskMonth } from "@/components/import/StepInputSubtasks";
+import { StepInputDaily } from "@/components/import/StepInputDaily";
+import { StepReview } from "@/components/import/StepReview";
 import { StepComplete } from "@/components/import/StepComplete";
-import type { ParsedPlan } from "@/types/database";
+import { formatMonth } from "@/lib/utils";
+import type { ParsedPlan, ParsedMonth } from "@/types/database";
+
+function buildPlan(skillName: string, subtasks: SubtaskInput[]): ParsedPlan {
+  const monthMap = new Map<string, string[]>();
+  const unassigned: string[] = [];
+  for (const st of subtasks) {
+    if (st.months.length === 0) {
+      unassigned.push(st.text);
+    } else {
+      for (const m of st.months) {
+        const date = `${m.year}-${String(m.month).padStart(2, "0")}-01`;
+        if (!monthMap.has(date)) monthMap.set(date, []);
+        monthMap.get(date)!.push(st.text);
+      }
+    }
+  }
+  const months: ParsedMonth[] = [...monthMap.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([date, texts]) => ({ monthLabel: formatMonth(date), monthDate: date, subtasks: texts }));
+  return { skillName, months, unassignedSubtasks: unassigned };
+}
 
 export default function ImportPage() {
   const [step, setStep] = useState(0);
+  const [skillName, setSkillName] = useState("");
+  const [subtasks, setSubtasks] = useState<SubtaskInput[]>([]);
+  const [dailyTasks, setDailyTasks] = useState<string[]>([]);
   const [plan, setPlan] = useState<ParsedPlan>({ skillName: "", months: [] });
 
   return (
     <div className="flex flex-col flex-1">
       <Header />
-
       <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-6 pb-20 md:pb-6">
-        <h1 className="text-xl font-bold text-[var(--foreground)] mb-6">
-          导入学习计划
-        </h1>
-
+        <h1 className="text-xl font-bold text-[var(--foreground)] mb-6">创建学习计划</h1>
         <WizardProgress currentStep={step} />
 
         {step === 0 && (
-          <StepPasteMarkdown
-            onNext={(p) => {
-              setPlan(p);
-              setStep(1);
-            }}
-          />
+          <StepInputName onNext={(name) => { setSkillName(name); setStep(1); }} />
         )}
         {step === 1 && (
-          <StepConfirmSkill
-            plan={plan}
-            onNext={(p) => {
-              setPlan(p);
-              setStep(2);
-            }}
-            onBack={() => setStep(0)}
-          />
+          <StepInputSubtasks
+            onNext={({ subtasks: sts }) => { setSubtasks(sts); setPlan(buildPlan(skillName, sts)); setStep(2); }}
+            onBack={() => setStep(0)} />
         )}
         {step === 2 && (
-          <StepConfirmMonths
-            plan={plan}
-            onNext={(p) => {
-              setPlan(p);
-              setStep(3);
-            }}
-            onBack={() => setStep(1)}
-          />
+          <StepInputDaily
+            onNext={({ dailyTasks: dts }) => { setDailyTasks(dts); setStep(3); }}
+            onBack={() => setStep(1)} />
         )}
         {step === 3 && (
-          <StepConfirmSubtasks
-            plan={plan}
-            onNext={(p) => {
-              setPlan(p);
-              setStep(4);
-            }}
-            onBack={() => setStep(2)}
-          />
+          <StepReview skillName={skillName} subtasks={subtasks}
+            onSave={() => setStep(4)} onBack={() => setStep(2)} />
         )}
         {step === 4 && (
-          <StepComplete
-            plan={plan}
-            onBack={() => setStep(3)}
-          />
+          <StepComplete plan={plan} dailyTasks={dailyTasks}
+            onBack={() => setStep(3)} />
         )}
       </main>
-
       <MobileBottomNav />
     </div>
   );
