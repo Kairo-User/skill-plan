@@ -23,14 +23,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const supabase = createClient();
 
+  function syncSessionCookie(session: { access_token?: string } | null) {
+    if (session?.access_token) {
+      document.cookie = "skillplan-session=1; path=/; max-age=604800; SameSite=Lax";
+    } else {
+      document.cookie = "skillplan-session=; path=/; max-age=0; SameSite=Lax";
+    }
+  }
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
+      syncSessionCookie(session);
       setLoading(false);
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      syncSessionCookie(session);
     });
 
     return () => {
@@ -40,6 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    syncSessionCookie(null);
     router.push("/login");
   };
 

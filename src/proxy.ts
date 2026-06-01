@@ -1,47 +1,20 @@
-import { createServerClient } from "@supabase/ssr";
+// Proxy only checks for a minimal auth indicator cookie.
+// Full auth is handled client-side via AuthProvider.
 import { NextResponse, type NextRequest } from "next/server";
 
-export async function proxy(request: NextRequest) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+export function proxy(request: NextRequest) {
+  // The client sets this cookie after successful login
+  const hasSession = request.cookies.has("skillplan-session");
 
-  if (!supabaseUrl || !supabaseKey) {
-    return NextResponse.next({ request });
-  }
-
-  let response = NextResponse.next({ request });
-
-  const supabase = createServerClient(supabaseUrl, supabaseKey, {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll();
-      },
-      setAll(cookiesToSet) {
-        // Collect all cookies and set them once to avoid race conditions
-        for (const { name, value } of cookiesToSet) {
-          request.cookies.set(name, value);
-        }
-        response = NextResponse.next({ request });
-        for (const { name, value, options } of cookiesToSet) {
-          response.cookies.set(name, value, options);
-        }
-      },
-    },
-  });
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (!session && !request.nextUrl.pathname.startsWith("/login")) {
+  if (!hasSession && !request.nextUrl.pathname.startsWith("/login")) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  if (session && request.nextUrl.pathname === "/login") {
+  if (hasSession && request.nextUrl.pathname === "/login") {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  return response;
+  return NextResponse.next();
 }
 
 export const config = {
