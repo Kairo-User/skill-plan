@@ -63,7 +63,7 @@ export default function Home() {
           const { data: sts } = await supabase
             .from("subtasks")
             .select("*")
-            .eq("monthly_goal_id", goals[0].id)
+            .eq("monthly_goal_id", (goals[0] as { id: string }).id)
             .order("sort_order");
           subtasks = sts ?? [];
         }

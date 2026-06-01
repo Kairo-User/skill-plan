@@ -1,13 +1,11 @@
 "use client";
 
-import { createClient as createSupabaseClient } from "@supabase/supabase-js";
-
-function cleanEnv(value: string | undefined): string {
-  return (value ?? "").replace(/﻿/g, "");
-}
+import { createBrowserClient } from "@supabase/ssr";
 
 export function createClient() {
-  const url = cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_URL);
-  const key = cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-  return createSupabaseClient(url, key);
+  return createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    // Strip BOM (U+FEFF) that may sneak in via Vercel CLI pipe encoding
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!.replace(/﻿/g, "")
+  );
 }
